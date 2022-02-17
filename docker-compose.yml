@@ -1,0 +1,48 @@
+version: '3.9'
+
+services:
+  web:
+    build:
+      context: ./meetup
+      dockerfile: Dockerfile
+      args:
+        - STATIC_URL=$WEB_STATIC_URL
+    env_file:
+      - ./.env
+    command: python manage.py runserver 0.0.0.0:$WEB_LOCAL_PORT
+    ports:
+      - $WEB_LOCAL_PORT:$WEB_DOCKER_PORT
+    networks:
+      - meetup-backend-tier
+    depends_on:
+      - postgres
+    volumes:
+      - ./meetup/meetup/:/app/meetup:Z
+      - ./meetup/templates/:/app/templates:Z
+      - ./meetup/tests/:/app/tests
+      # shared volume between worker and api for media
+      - meetup-media:/app/media
+    container_name: meetup-web
+
+  postgres:
+    image: postgres
+    networks:
+      - meetup-backend-tier
+    ports:
+      - $POSTGRES_LOCAL_PORT:$POSTGRES_DOCKER_PORT
+    volumes:
+      - meetup-postgres:/var/lib/postgresql/data
+    env_file:
+      - ./.env
+    container_name: meetup-postgres
+
+volumes:
+  meetup-postgres:
+    driver: local
+  meetup-redis:
+    driver: local
+  meetup-media:
+
+networks:
+  meetup-backend-tier:
+    driver: bridge    
